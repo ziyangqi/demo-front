@@ -295,7 +295,65 @@ declare namespace API {
     userRole?: string;
   };
 
+  type UserQueryRequest = {
+    id? : number;
+    userName?: string;
+    userAccount?: string
+    userAvatar?: string
+    gender?: number
+    userRole?: string
+    createTime?: string
+    updateTime?: string
+  }
+
   type View = {
     contentType?: string;
   };
+
+  type TodoTaskQueryDTO = {
+    endTime? :string
+    startTime? :string
+    limit?: number
+    page?: number
+  }
+
+  type waitList = {
+    id?: string
+    name?: string
+    createTime?: string
+    processDefinitionId?: string
+    processInstanceId?: string
+    title?: string
+  }
+
+  type CommuReveiverQueryDTO = {
+    name?: string
+    title?: string
+    status: string
+    whereSql: string
+    typeKey :string
+    limit?: number
+    page?: number
+  }
+
+  type BaseResponseReadList_ = {
+    code?: number;
+    data?: string;
+    msg?: string;
+  };
+  // 流程待阅
+  type waitReadList = {
+    id?: string
+    notice?: string
+    opinion?: string
+    procId?: string
+    title?: string
+    taskId?: string
+    receiver?: string
+    receiverId?: string
+  }
+
+  type changeAlready = {
+    taskId?: string
+  }
 }

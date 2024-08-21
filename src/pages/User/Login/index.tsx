@@ -25,12 +25,19 @@ const Login: React.FC = () => {
   });
 
   const handleSubmit = async (values: API.UserLoginRequest) => {
+    console.log("11111")
     try {
       // 登录
       const res = await userLoginUsingPost({
         ...values,
       });
 
+      console.log(res.data)
+      // @ts-ignore
+      const token = res.data.token;
+      // @ts-ignore
+      localStorage.setItem('token', token);
+      console.log(token)
       const defaultLoginSuccessMessage = '登录成功！';
       message.success(defaultLoginSuccessMessage);
       // 保存已登录用户信息
@@ -38,10 +45,12 @@ const Login: React.FC = () => {
         ...initialState,
         currentUser: res.data,
       });
+      // @ts-ignore
       const urlParams = new URL(window.location.href).searchParams;
       history.push(urlParams.get('redirect') || '/');
       return;
     } catch (error: any) {
+      console.log(error)
       const defaultLoginFailureMessage = `登录失败，${error.message}`;
       message.error(defaultLoginFailureMessage);
     }

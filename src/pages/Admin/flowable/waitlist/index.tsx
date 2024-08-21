@@ -1,15 +1,16 @@
 import CreateModal from '@/pages/Admin/User/components/CreateModal';
 import UpdateModal from '@/pages/Admin/User/components/UpdateModal';
-import { deleteUserUsingPost, listUserByPageUsingGet } from '@/services/backend/userController';
+import { deleteUserUsingPost } from '@/services/backend/userController';
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import '@umijs/max';
 import { Button, message, Space, Typography } from 'antd';
 import React, { useRef, useState } from 'react';
+import {waitListPost} from "@/services/backend/taskController";
 
 /**
- * 用户管理页面
+ * 流程引擎界面
  *
  * @constructor
  */
@@ -20,14 +21,14 @@ const UserAdminPage: React.FC = () => {
   const [updateModalVisible, setUpdateModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   // 当前用户点击的数据
-  const [currentRow, setCurrentRow] = useState<API.User>();
+  const [currentRow, setCurrentRow] = useState<API.waitList>();
 
   /**
    * 删除节点
    *
    * @param row
    */
-  const handleDelete = async (row: API.User) => {
+  const handleDelete = async (row: API.waitList) => {
     const hide = message.loading('正在删除');
     if (!row) return true;
     try {
@@ -48,47 +49,38 @@ const UserAdminPage: React.FC = () => {
   /**
    * 表格列配置
    */
-  const columns: ProColumns<API.User>[] = [
+  const columns: ProColumns<API.waitList>[] = [
     {
       title: 'id',
       dataIndex: 'id',
       valueType: 'text',
       hideInForm: true,
+      hideInSearch:true
     },
     {
-      title: '账号',
-      dataIndex: 'userAccount',
+      title: '名称',
+      dataIndex: 'name',
       valueType: 'text',
-      render: (text) => {
-        console.log('Render userAccount:', text);
-        return text || '无数据';
-      },
+      hideInSearch: true
     },
     {
-      title: '用户名',
-      dataIndex: 'userName',
+      title: '流程id',
+      dataIndex: 'processInstanceId',
       valueType: 'text',
+      hideInSearch: true
     },
     {
-      title: '头像',
-      dataIndex: 'userAvatar',
-      valueType: 'image',
-      fieldProps: {
-        width: 64,
-      },
-      hideInSearch: true,
+      title: '当前余额',
+      dataIndex: 'processDefinitionId',
+      valueType: 'text',
+      hideInSearch: true
     },
+
     {
-      title: '权限',
-      dataIndex: 'userRole',
-      valueEnum: {
-        user: {
-          text: '用户',
-        },
-        admin: {
-          text: '管理员',
-        },
-      },
+      title: '标题',
+      dataIndex: 'title',
+      valueType: 'text',
+      hideInSearch: true
     },
     {
       title: '创建时间',
@@ -99,12 +91,18 @@ const UserAdminPage: React.FC = () => {
       hideInForm: true,
     },
     {
-      title: '更新时间',
-      sorter: true,
-      dataIndex: 'updateTime',
-      valueType: 'dateTime',
-      hideInSearch: true,
-      hideInForm: true,
+      title: '时间区间',
+      key: 'dateTimeRange',
+      dataIndex: 'createdAtRange',
+      valueType: 'dateTimeRange',
+      colSize:1.5,
+      hideInTable:true,
+      search: {
+        transform: (value: any) => ({
+          startTime: value[0],
+          endTime: value[1],
+        }),
+      },
     },
     {
       title: '操作',
@@ -129,7 +127,7 @@ const UserAdminPage: React.FC = () => {
   ];
   return (
     <PageContainer>
-      <ProTable<API.User>
+      <ProTable<API.waitList>
         headerTitle={'查询表格'}
         actionRef={actionRef}
         rowKey="key"
@@ -150,46 +148,51 @@ const UserAdminPage: React.FC = () => {
         request={async (params, sort, filter) => {
           const sortField = Object.keys(sort)?.[0];
           const sortOrder = sort?.[sortField] ?? undefined;
-
-          const { data, code } = await listUserByPageUsingGet({
+          // const { data, code } = await listUserByPageUsingGet({
+          //   ...params,
+          //   sortField,
+          //   sortOrder,
+          //   ...filter,
+          // } as API.UserQueryRequest)
+          const {data ,code} = await waitListPost({
             ...params,
             sortField,
             sortOrder,
             ...filter,
-          } as API.UserQueryRequest)
-          console.log(data?.records)
+          } as API.TodoTaskQueryDTO)
+
+          console.log(params)
           return {
             success: code === 200,
-            data: data?.records || [],
-            total: Number(data?.total) || 0,
+            data: data || [],
+            total: Number(data?.length) || 0,
           };
         }}
-        columns={columns}
-      />
-      <CreateModal
-        visible={createModalVisible}
-        columns={columns}
-        onSubmit={() => {
-          setCreateModalVisible(false);
-          actionRef.current?.reload();
-        }}
-        onCancel={() => {
-          setCreateModalVisible(false);
-        }}
-      />
-      <UpdateModal
-        visible={updateModalVisible}
-        columns={columns}
-        oldData={currentRow}
-        onSubmit={() => {
-          setUpdateModalVisible(false);
-          setCurrentRow(undefined);
-          actionRef.current?.reload();
-        }}
-        onCancel={() => {
-          setUpdateModalVisible(false);
-        }}
-      />
+        columns={columns}></ProTable>
+      {/*<CreateModal*/}
+      {/*  visible={createModalVisible}*/}
+      {/*  columns={columns}*/}
+      {/*  onSubmit={() => {*/}
+      {/*    setCreateModalVisible(false);*/}
+      {/*    actionRef.current?.reload();*/}
+      {/*  }}*/}
+      {/*  onCancel={() => {*/}
+      {/*    setCreateModalVisible(false);*/}
+      {/*  }}*/}
+      {/*/>*/}
+      {/*<UpdateModal*/}
+      {/*  visible={updateModalVisible}*/}
+      {/*  columns={columns}*/}
+      {/*  oldData={currentRow}*/}
+      {/*  onSubmit={() => {*/}
+      {/*    setUpdateModalVisible(false);*/}
+      {/*    setCurrentRow(undefined);*/}
+      {/*    actionRef.current?.reload();*/}
+      {/*  }}*/}
+      {/*  onCancel={() => {*/}
+      {/*    setUpdateModalVisible(false);*/}
+      {/*  }}*/}
+      {/*/>*/}
     </PageContainer>
   );
 };

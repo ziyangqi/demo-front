@@ -25,7 +25,14 @@ export const requestConfig: RequestConfig = {
   requestInterceptors: [
     (config: RequestOptions) => {
       // 拦截请求配置，进行个性化处理。
+      const token = localStorage.getItem('token');
+      if (token) {
+        // 将 token 添加到 Authorization 头中
+        // @ts-ignore
+        config.headers['Authorization'] = token
+      }
       return config;
+
     },
   ],
 
@@ -54,7 +61,7 @@ export const requestConfig: RequestConfig = {
         throw new Error('请先登录');
       }
 
-      if (code !== 0) {
+      if (code !== 200) {
         throw new Error(data.message ?? '服务器错误');
       }
       return response;
