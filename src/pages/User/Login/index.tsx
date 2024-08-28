@@ -25,14 +25,12 @@ const Login: React.FC = () => {
   });
 
   const handleSubmit = async (values: API.UserLoginRequest) => {
-    console.log("11111")
     try {
       // 登录
       const res = await userLoginUsingPost({
         ...values,
       });
 
-      console.log(res.data)
       // @ts-ignore
       const token = res.data.token;
       // @ts-ignore
@@ -76,7 +74,6 @@ const Login: React.FC = () => {
           }}
           logo={<img alt="logo" style={{ height: '100%' }} src="/logo.svg" />}
           title="流程引擎前端demo"
-          subTitle={'快速开发属于自己的前端项目'}
           initialValues={{
             autoLogin: true,
           }}

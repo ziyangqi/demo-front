@@ -3,7 +3,21 @@ import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
 import '@umijs/max';
-import {Button, Drawer, Form, Input, message, Modal, notification, Radio, Select, Space, Table, Typography} from 'antd';
+import {
+  Button,
+  Checkbox,
+  Drawer,
+  Form,
+  Input,
+  message,
+  Modal,
+  notification,
+  Radio,
+  Select,
+  Space,
+  Table,
+  Typography
+} from 'antd';
 import React, {useEffect, useRef, useState} from 'react';
 import {getSpeedGet, getSpeedListGet, waitListPost} from "@/services/backend/taskController";
 import {
@@ -14,11 +28,11 @@ import {
 } from "@/services/backend/flowController";
 import { Row, Col } from 'antd';
 import TextArea from 'antd/es/input/TextArea';
+import initialState from "@@/plugin-initialState/@@initialState";
+import {getLoginUserUsingGet} from "@/services/backend/userController";
 const UserAdminPage: React.FC = () => {
   const { Option } = Select
   const [radioValue,setRadioValue] = useState("");
-  const [createModalVisible, setCreateModalVisible] = useState<boolean>(false);
-  const [updateModalVisible, setUpdateModalVisible] = useState<boolean>(false);
   const actionRef = useRef<ActionType>();
   const [currentRow, setCurrentRow] = useState<API.waitList>();
   const [drawerData, setDrawerData] = useState<any[]>([]);
@@ -42,9 +56,10 @@ const UserAdminPage: React.FC = () => {
   const [runningData, setRunning] = useState<any[]>();
   const [modalTransferVisible,setModalTransferVisible] = useState<boolean>(false);
   const [transferUserInfo,setTransferUserInfo] = useState<any[]>();
-  const [selectData,setSelectData] = useState<any[]>();
   const [selectUser,setSelectUser] = useState<any[]>();
+  const [loginUserData,setLoginUserData] = useState<any[]>();
   const [formTransfer] =  Form.useForm();
+  const [checkBoxUser,setCheckBoxUser] = useState('');
   // FormJSON的内容
   interface FormJson {
     list: Array<{
@@ -82,16 +97,16 @@ const UserAdminPage: React.FC = () => {
 
   const handleApprove = async (row: API.waitList) => {
     // 打开浮层的Model
-    console.log(row);
     setLoading(true);
     if (!row) return true;
     try {
-      // 获取流程细节的
+      // 获取流程细节
       const detailData = await taskDetailGet({
         taskId: row.id as any,
       });
 
       // 解析并设置表单项
+      // @ts-ignore
       const parsedJson: FormJson = JSON.parse(detailData.data.busFormInfo.formJson);
       const editJson: FormJson = JSON.parse(detailData.data.busFormInfo.editForm);
       const mergedJson = mergeJsons(parsedJson, editJson);
@@ -102,21 +117,26 @@ const UserAdminPage: React.FC = () => {
       const { data } = await getSpeedGet({
         taskId: row.processInstanceId as any,
       });
-
       // 获取taskKeys
+      // @ts-ignore
       const uniqueTaskKeyNamePairs = data.data.slice(1)
+        // @ts-ignore
         .filter((item: any) => !data.runing.includes(item.taskKey))
         .map((item: any) => ({
           taskKey: item.taskKey,
           taskName: item.taskName
         }));
+      console.log(loginUserData)
       setRunning(uniqueTaskKeyNamePairs)
       // 加载下一个节点的值
+      // @ts-ignore
       setNextNodeMessage(detailData.data.nextNodeInfoVOs);
       // @ts-ignore
       setModalData(data.data || []);
       setModalSubmitVisible(true);
+      // @ts-ignore
       setApproveTitle(row.title);
+      // @ts-ignore
       setApproveTaskId(row.id);
       // 使用 useEffect 监听 formData 变化来生成结果
       const result = mergedJson.list.reduce((acc, item) => {
@@ -127,6 +147,7 @@ const UserAdminPage: React.FC = () => {
         acc[modelValue] = defaultValue;
         return acc;
       }, {}); // 初始值为空对象
+      // @ts-ignore
       setFormDataResult(result);
       console.log(result);
 
@@ -164,11 +185,21 @@ const UserAdminPage: React.FC = () => {
       const uniqueUsers = Array.from(
         new Map(allNodeUsers.map(user => [user.userNo, user])).values()
       );
+
+      console.log(userNos)
       setTransferUserInfo(uniqueUsers);
-      console.log(transferUserInfo)
       setChooseNodeUser(userNos);
     }
   }, [nextNodeMessage]); // 依赖于 nextNodeMessage，当它变化时执行
+
+  useEffect(() => {
+    // 每次 formData 更新时，重新设置表单的字段值
+    const initialValues = formData.reduce((values, item) => {
+      values[item.model] = item.options.defaultValue || '';
+      return values;
+    }, {} as Record<string, any>);
+    form.setFieldsValue(initialValues);
+  }, [formData, form]);
 
   const columns: ProColumns<API.waitList>[] = [
     {
@@ -234,16 +265,13 @@ const UserAdminPage: React.FC = () => {
             onClick={() => {
               handleApprove(record)
               setCurrentRow(record);
-              setUpdateModalVisible(true);
             }}
           >审批
-
           </Typography.Link  >
           <Typography.Link type="success" onClick={async () => {
             const {data, code} = await getSpeedListGet({
               taskId:record.id as any
             });
-            console.log(data)
             if(code === 200) {
               console.log()
               // @ts-ignore
@@ -334,8 +362,9 @@ const UserAdminPage: React.FC = () => {
   // 同意流程中的同意按钮的内容
   const handleSubmitAgree = async () => {
     // 处理审批逻辑
-
-    const values = form.getFieldsValue();
+    // @ts-ignore
+    const values = form.getFieldsValue("selectedUsers");
+    console.log(values)
     const newTaskAgreeFlowDTO = {
       taskName: "",
       taskId: approveTaskId,
@@ -366,7 +395,7 @@ const UserAdminPage: React.FC = () => {
         placement: "top",
       });
     }
-    // 成功后结束
+
     setAgreeModelVisible(false)
   };
   // 改变User的时候获取
@@ -531,19 +560,22 @@ const UserAdminPage: React.FC = () => {
       key: 'end',
     },
   ];
-
   return (
     <PageContainer>
       <ProTable<API.waitList>
         headerTitle={'查询表格'}
         actionRef={actionRef}
         rowKey="id"
+        pagination={{
+          showSizeChanger: true, // 允许用户修改每页记录数
+          defaultPageSize: 10,  // 默认每页显示10条
+          showQuickJumper: true // 允许快速跳转到某一页
+        }}
         search={{ labelWidth: 120 }}
         toolBarRender={() => [
           <Button
             type="primary"
             key="primary"
-            onClick={() => setCreateModalVisible(true)}
           >
             <PlusOutlined /> 新建
           </Button>,
@@ -552,16 +584,20 @@ const UserAdminPage: React.FC = () => {
           const sortField = Object.keys(sort)?.[0];
           const sortOrder = sort?.[sortField] ?? undefined;
           const {data ,code} = await waitListPost({
-            page: params.current,
-            limit:params.pageSize,
+            page: 1,
+            limit:10000,
             sortField,
             sortOrder,
             ...filter,
           } as API.TodoTaskQueryDTO)
 
+          const userData = await getLoginUserUsingGet();
+          // @ts-ignore
+          setLoginUserData(userData.data)
+
           return {
             success: code === 200,
-            data: data || [],
+            data: Array.isArray(data) ? data : [],
             total: Number(data?.length) || 0,
           };
         }}
@@ -647,8 +683,6 @@ const UserAdminPage: React.FC = () => {
           />
         </div>
 
-
-
         {/*浮层表单关于办理流程的浮层表单 */}
         <Modal
           destroyOnClose
@@ -659,7 +693,7 @@ const UserAdminPage: React.FC = () => {
           visible={agreeModelVisible}
           bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
         >
-          <Form form={formReject} name="22" layout="vertical" autoComplete="off" onFinish={handleSubmitAgree}>
+          <Form form={form} name="22" layout="vertical" autoComplete="off" onFinish={handleSubmitAgree}>
             <Form.Item name="next_node" style={{marginBottom: 0}}>
               <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
                 <span style={{marginRight: 8}}>下一个节点  </span>
@@ -670,21 +704,27 @@ const UserAdminPage: React.FC = () => {
                 ))}
               </div>
               <br/>
-              <div style={{gap: '8px', alignItems: 'center'}}>
-                {nextNodeMessage?.map(({taskName, nodeUsers}, index) => (
-                  <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                    <p style={{marginRight: '8px'}}>{taskName}:</p>
-                    <div style={{display: 'flex', gap: '8px'}}>
-                      {nodeUsers?.map(({fullname}, index) => (
-                        <Button key={index} type="primary" size="middle"
-                                style={{display: 'flex', alignItems: 'center', padding: '0 8px'}}>
-                          {fullname}
-                        </Button>
-                      ))}
+              <Form.Item name="selectedUsers" >
+                <Checkbox.Group>
+                  {nextNodeMessage?.map(({ taskName, nodeUsers }, index) => (
+                    <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
+                      <p style={{
+                        marginRight: '8px',
+                        marginBottom: 0
+                      }}>{taskName}:</p>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        {nodeUsers?.map(({fullname}) => (
+                          <Checkbox key={fullname} value={fullname} style={{lineHeight: '24px'}}>
+                            {fullname}
+                          </Checkbox>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+
+
+                  ))}
+                </Checkbox.Group>
+              </Form.Item>
               <Form.Item
                 name="opinion"
                 rules={[{required: true, message: '请输入审批意见'}]} // 可以加一些表单验证规则
@@ -722,7 +762,7 @@ const UserAdminPage: React.FC = () => {
           <Form form={formReject} name="validateOnly" layout="vertical" autoComplete="off"  onFinish={handleSubmitReject}>
             <Form.Item name="name" style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ marginRight: 8 }}>审批人</span>
+                <span style={{ marginRight: 8 }}>审批人: {loginUserData?.userAccount}</span>
               </div>
               <br />
               <Form.Item
@@ -776,10 +816,10 @@ const UserAdminPage: React.FC = () => {
         >
           <Form form={formTransfer} name="validateOnly" layout="vertical" autoComplete="off" onFinish={handleSubmitTansfer}>
             <Form.Item name="name" style={{ marginBottom: 0 }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ marginRight: 8 }}>审批人</span>
+              <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                <span style={{marginRight: 8}}>审批人: {loginUserData?.userAccount}</span>
               </div>
-              <br />
+              <br/>
               <Form.Item
                 name="fullname"
                 >
