@@ -326,6 +326,13 @@ declare namespace API {
     title?: string
   }
 
+  type flowList ={
+    description:? string
+    href:? string
+    modelKey?: string
+    name? :string
+  }
+
   type CommuReveiverQueryDTO = {
     name?: string
     title?: string
@@ -354,6 +361,72 @@ declare namespace API {
   }
 
   type changeAlready = {
+    id?: string
+  }
+
+  type getSpeedList = {
     taskId?: string
+  }
+
+  //获取流程细节的modelKey
+  type modelKey = {
+    modelKey?: string
+  }
+
+  // 编写发起流程的DTO
+  type taskFlowDTO = {
+    defId:? string|null
+    externalUrl:? string|null
+    formData:? string|null
+    modelId:? string|null
+    typeTitle:? string|null
+  }
+  type taskId ={
+    taskId:? string
+  }
+
+  // 同意流程的DTO
+
+  type taskAgreeFlowDTO = {
+    taskName?: string
+    bpmVar?: string
+    taskId?: string
+    taskTitle?: string
+    opinion?: string
+    actionName?: string
+    action?: string
+    nodeType?: string
+    nodeIndex?: string
+    chooseNode?: string
+    chooseNodeUser?: string
+    formType?: string
+    formData?: string
+    priority?: string
+    monitor?: boolean
+  }
+
+  // 拒绝流程DTO
+  type taskRejectFlowDTO = {
+    newActivityId?: string
+    operate?: string
+    priority?: string
+    option?: string
+    taskId?: string
+    taskTitle?: string
+  }
+
+  type taskTransferFlowDTO = {
+    option?: string
+    taskId?: string
+    usersInfo?: any[]
+  }
+
+  type taskEntrustFlowDTO = {
+    agentType?: string
+    endDate?: string
+    authIds?: any[]
+    startDate?: string
+    opinion?: string
+    subject?: string
   }
 }

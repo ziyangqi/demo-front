@@ -62,7 +62,7 @@ export const requestConfig: RequestConfig = {
       }
 
       if (code !== 200) {
-        throw new Error(data.message ?? '服务器错误');
+        throw new Error(data.msg ?? '服务器错误');
       }
       return response;
     },

@@ -4,7 +4,7 @@ import '@umijs/max';
 import React from 'react';
 
 const Footer: React.FC = () => {
-  const defaultMessage = '程序员鱼皮';
+  const defaultMessage = '前端demo';
   const currentYear = new Date().getFullYear();
   return (
     <DefaultFooter
@@ -29,7 +29,7 @@ const Footer: React.FC = () => {
           key: 'github',
           title: (
             <>
-              <GithubOutlined /> 鱼皮源码
+              <GithubOutlined /> 前端demo
             </>
           ),
           href: 'https://github.com/liyupi',

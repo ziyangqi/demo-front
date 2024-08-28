@@ -185,30 +185,6 @@ const UserAdminPage: React.FC = () => {
           };
         }}
         columns={columns}></ProTable>
-      {/*<CreateModal*/}
-      {/*  visible={createModalVisible}*/}
-      {/*  columns={columns}*/}
-      {/*  onSubmit={() => {*/}
-      {/*    setCreateModalVisible(false);*/}
-      {/*    actionRef.current?.reload();*/}
-      {/*  }}*/}
-      {/*  onCancel={() => {*/}
-      {/*    setCreateModalVisible(false);*/}
-      {/*  }}*/}
-      {/*/>*/}
-      {/*<UpdateModal*/}
-      {/*  visible={updateModalVisible}*/}
-      {/*  columns={columns}*/}
-      {/*  oldData={currentRow}*/}
-      {/*  onSubmit={() => {*/}
-      {/*    setUpdateModalVisible(false);*/}
-      {/*    setCurrentRow(undefined);*/}
-      {/*    actionRef.current?.reload();*/}
-      {/*  }}*/}
-      {/*  onCancel={() => {*/}
-      {/*    setUpdateModalVisible(false);*/}
-      {/*  }}*/}
-      {/*/>*/}
     </PageContainer>
   );
 };
