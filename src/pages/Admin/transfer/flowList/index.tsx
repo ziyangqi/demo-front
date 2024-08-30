@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getFlowDetail, getFlowList, taskFlowablePost } from "@/services/backend/flowController";
-import { Modal, Form, Input, Button } from 'antd';
+import {Modal, Form, Input, Button, notification} from 'antd';
 import defaultImage from '@/assets/default.png';
 
 interface DataItem {
@@ -47,6 +47,7 @@ export default function IconGrid() {
     async function fetchData() {
       const response = await getFlowList();
       const data = response.data;
+      // @ts-ignore
       setDataList(data);
     }
     fetchData();
@@ -58,10 +59,12 @@ export default function IconGrid() {
     console.log(data)
 
     // 获取需要的数据
-    // @ts-ignore
     const detail: modelDetail = {
+      // @ts-ignore
       defId: data.defId,
+      // @ts-ignore
       modelId: data.modelId,
+      // @ts-ignore
       title: data.sysTypeEntity.title,
     };
     setDetailData(detail);
@@ -69,6 +72,7 @@ export default function IconGrid() {
 
     try {
       // 解析并设置表单项
+      // @ts-ignore
       const parsedJson: FormJson = JSON.parse(data.formJson);
       setFormData(parsedJson.list);
       form.resetFields(); // 重置表单
@@ -124,13 +128,18 @@ export default function IconGrid() {
         externalUrl: '',
       };
 
-      const dataDetail = await taskFlowablePost({
+      const res = await taskFlowablePost({
         ...taskData
       }); // 发起流程
-      console.log(dataDetail)
 
-      console.log(detailData)
-
+      if (res.code === 200){
+        notification.success({
+          message: "提示",
+          description: "新建成功",
+          duration: 2,
+          placement: "top",
+        });
+      }
       setModalVisible(false);
     } catch (error) {
       console.error("表单验证失败或提交出错:", error);

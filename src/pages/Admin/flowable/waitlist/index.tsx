@@ -5,7 +5,6 @@ import { PageContainer, ProTable } from '@ant-design/pro-components';
 import '@umijs/max';
 import {
   Button,
-  Checkbox,
   Drawer,
   Form,
   Input,
@@ -29,7 +28,8 @@ import {
 import { Row, Col } from 'antd';
 import TextArea from 'antd/es/input/TextArea';
 import initialState from "@@/plugin-initialState/@@initialState";
-import {getLoginUserUsingGet} from "@/services/backend/userController";
+import {getLoginUserUsingGet, listUserUsingGet} from "@/services/backend/userController";
+import {getLocaleList} from "@umijs/plugins/dist/utils/localeUtils";
 const UserAdminPage: React.FC = () => {
   const { Option } = Select
   const [radioValue,setRadioValue] = useState("");
@@ -57,9 +57,11 @@ const UserAdminPage: React.FC = () => {
   const [modalTransferVisible,setModalTransferVisible] = useState<boolean>(false);
   const [transferUserInfo,setTransferUserInfo] = useState<any[]>();
   const [selectUser,setSelectUser] = useState<any[]>();
-  const [loginUserData,setLoginUserData] = useState<any[]>();
+  const [loginUserData,setLoginUserData] = useState();
   const [formTransfer] =  Form.useForm();
-  const [checkBoxUser,setCheckBoxUser] = useState('');
+  const [initUserNo ,setInitUseNO] = useState();
+  // 设置按钮防止重复提交
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // FormJSON的内容
   interface FormJson {
     list: Array<{
@@ -117,20 +119,32 @@ const UserAdminPage: React.FC = () => {
       const { data } = await getSpeedGet({
         taskId: row.processInstanceId as any,
       });
-      // 获取taskKeys
       // @ts-ignore
-      const uniqueTaskKeyNamePairs = data.data.slice(1)
-        // @ts-ignore
-        .filter((item: any) => !data.runing.includes(item.taskKey))
-        .map((item: any) => ({
-          taskKey: item.taskKey,
-          taskName: item.taskName
-        }));
-      console.log(loginUserData)
+      setInitUseNO(data.data[0].taskName.split('/')[1].slice(0, -1))
+      // 获取taskKeys
+      const uniqueTaskKeyNamePairs = Array.from(
+        new Map(
+          // @ts-ignore
+          data.data.slice(1,-1)
+            // @ts-ignore
+            .filter((item: any) => !data.runing.includes(item.taskKey) )
+            .map((item: any) => {
+              const match = item.taskName.match(/\(([^)]+)\/([^)]+)\)$/);
+              return {
+                taskKey: item.taskKey,
+                taskName: item.taskName,
+                userNo: match ? match[2] : '' // 获取匹配结果中的 userNo 部分
+              };
+            })
+            .map(item => [item.taskKey, item]) // 用 `taskKey` 作为键，进行去重
+        ).values()
+      );
       setRunning(uniqueTaskKeyNamePairs)
+      console.log(runningData)
       // 加载下一个节点的值
       // @ts-ignore
       setNextNodeMessage(detailData.data.nextNodeInfoVOs);
+      console.log(nextNodeMessage)
       // @ts-ignore
       setModalData(data.data || []);
       setModalSubmitVisible(true);
@@ -173,21 +187,11 @@ const UserAdminPage: React.FC = () => {
     if (nextNodeMessage) {
       const nodeIds = nextNodeMessage.map(node => node.taskId).join(',');
       setChooseNode(nodeIds);
+      // 相同的使用_分割，不同的使用，分割
       const userNos = nextNodeMessage
-        .flatMap(node => node.nodeUsers ? node.nodeUsers.map((user: { userNo: any; }) => user.userNo) : [])
-        .join('_');
-
-      // 获取nodeUser
-      // @ts-ignore
-      const allNodeUsers = nextNodeMessage
-        .flatMap(node => node.nodeUsers ? node.nodeUsers : []);
-
-      const uniqueUsers = Array.from(
-        new Map(allNodeUsers.map(user => [user.userNo, user])).values()
-      );
-
-      console.log(userNos)
-      setTransferUserInfo(uniqueUsers);
+        .map(node => node.nodeUsers ? node.nodeUsers.map((user: { userNo: string; }) => user.userNo).join('_') : '')
+        .filter(str => str !== '')
+        .join(',');
       setChooseNodeUser(userNos);
     }
   }, [nextNodeMessage]); // 依赖于 nextNodeMessage，当它变化时执行
@@ -235,11 +239,24 @@ const UserAdminPage: React.FC = () => {
     },
     {
       title: '创建时间',
-      sorter: true,
       dataIndex: 'createTime',
       valueType: 'dateTime',
       hideInSearch: true,
       hideInForm: true,
+    },
+    {
+      title: '是否转办',
+      dataIndex: 'isTransfer',
+      valueType: 'text',
+      hideInSearch: true,
+      valueEnum:{
+        'true' : {
+          text : '否'
+          },
+        'false': {
+          text : '是'
+        }
+      }
     },
     {
       title: '时间区间',
@@ -349,116 +366,157 @@ const UserAdminPage: React.FC = () => {
     setAgreeModelVisible(true);
     // 2 对浮窗的内容进行填写传入参数
   };
-  const handleReject = () => {
-    // 处理running的内容
+  const handleReject = () =>{
+
     setModalRejectVisible(true);
   };
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
+    // 进行获取本地的用户
+
+    // 处理流转的内容
+    // 获取用户的列表
+    // @ts-ignore
+    const localListData = await listUserUsingGet();
+    console.log(localListData.data)
+    setTransferUserInfo(localListData.data)
     setModalTransferVisible(true);
   };
 
 
   // 同意流程中的同意按钮的内容
   const handleSubmitAgree = async () => {
-    // 处理审批逻辑
-    // @ts-ignore
-    const values = form.getFieldsValue("selectedUsers");
-    console.log(values)
-    const newTaskAgreeFlowDTO = {
-      taskName: "",
-      taskId: approveTaskId,
-      taskTitle: approveTitle,
-      monitor: false,
-      action: "agree",
-      actionName: "agree",
-      bpmVar: "",
-      formData: JSON.stringify(formDataResult),
-      chooseNode: chooseNode,
-      chooseNodeUser: chooseNodeUser,
-      formType: "inner",
-      nodeIndex: '0',
-      priority: '50',
-      opinion: values.opinion,
-    };
+    try {
+      setIsSubmitting(true)
+      // 处理审批逻辑
+      // @ts-ignore
+      const values = form.getFieldsValue("selectedUsers");
+      console.log(values)
+      const newTaskAgreeFlowDTO = {
+        taskName: "",
+        taskId: approveTaskId,
+        taskTitle: approveTitle,
+        monitor: false,
+        action: "agree",
+        actionName: "agree",
+        bpmVar: "",
+        formData: JSON.stringify(formDataResult),
+        chooseNode: chooseNode,
+        chooseNodeUser: chooseNodeUser,
+        formType: "inner",
+        nodeIndex: '0',
+        priority: '50',
+        opinion: values.opinion,
+      };
 
-    console.log(newTaskAgreeFlowDTO)
-
-    const {code} = await taskAgreeFlowPost({
-      ...newTaskAgreeFlowDTO
-    })
-    if (code === 200){
-      notification.success({
-        message: "提示",
-        description: "审批成功",
-        duration: 2,
-        placement: "top",
-      });
+      const {code} = await taskAgreeFlowPost({
+        ...newTaskAgreeFlowDTO
+      })
+      if (code === 200) {
+        notification.success({
+          message: "提示",
+          description: "审批成功",
+          duration: 2,
+          placement: "top",
+        });
+      }
+    }  catch (error: any) {
+      message.error('查找失败，' + error.message);
+      return false;
+    }finally {
+      setAgreeModelVisible(false)
+      setModalSubmitVisible(false)
+      setIsSubmitting(false)
     }
+    // @ts-ignore
+    actionRef.current.reload()
 
-    setAgreeModelVisible(false)
   };
   // 改变User的时候获取
-  const onUserChange = (userNo: any) => {
+  const onUserChange = (userName: any) => {
     // @ts-ignore
-    const user = transferUserInfo.find(user => user.userNo === userNo);
-    setSelectUser(user);
-    console.log(selectUser)
+    const user = transferUserInfo.find(user => user.userName === userName);
+
+    const transformedUsers = {
+      userNo: user.userName,
+      fullname: user.userAccount,
+    };
+    // @ts-ignore
+    setSelectUser(transformedUsers)
   };
-  useEffect(() => {
-    console.log(selectUser);
-  }, [selectUser]);
+
   // 处理驳回的逻辑
   const handleSubmitReject = async (values:any) => {
+    try{
+      setIsSubmitting(true)
+      const newTaskRejectFlowDTO = {
+        newActivityId: radioValue.split('-')[0],
+        operate: "backToNode",
+        priority: '50',
+        option: values.opinion,
+        taskId:approveTaskId,
+        taskTitle: approveTitle,
+        userId: radioValue.split('-')[1]
+          ? radioValue.split('-')[1]  // 如果不为空，使用这个值
+          : initUserNo,
+      };
+      const {code} = await taskRejectFlowPost({
+        ...newTaskRejectFlowDTO
+      })
+      console.log(newTaskRejectFlowDTO)
+      if (code === 200){
+        notification.success({
+          message: "提示",
+          description: "驳回成功",
+          duration: 2,
+          placement: "top",
+        });
+      }
 
-    const newTaskRejectFlowDTO = {
-      newActivityId: radioValue,
-      operate: "backToNode",
-      priority: '50',
-      option: values.opinion,
-      taskId:approveTaskId,
-      taskTitle: approveTitle,
-    };
-    const {code} = await taskRejectFlowPost({
-      ...newTaskRejectFlowDTO
-    })
-    if (code === 200){
-      notification.success({
-        message: "提示",
-        description: "驳回成功",
-        duration: 2,
-        placement: "top",
-      });
+      // @ts-ignore
+      actionRef.current.reload()
+    }catch (error : any){
+      message.error(error.message)
+    }finally {
+      setIsSubmitting(false)
+      setModalRejectVisible(false)
+      setModalSubmitVisible(false)
     }
-    // 成功后结束
-    setModalRejectVisible(false)
-    setModalSubmitVisible(false)
+
   };
 
 
   // 处理驳回的逻辑
   const handleSubmitTansfer = async (values:any) => {
-
-    const newTaskTransferFlowDTO = {
-      usersInfo:selectUser,
-      option: values.opinion,
-      taskId:approveTaskId,
-    };
-    console.log(newTaskTransferFlowDTO)
-    const {code} = await taskTransferFlowPost({
-      ...newTaskTransferFlowDTO
-    })
-    if (code === 200){
-      notification.success({
-        message: "提示",
-        description: "转办成功",
-        duration: 2,
-        placement: "top",
-      });
+    try{
+      setIsSubmitting(false)
+      const newTaskTransferFlowDTO = {
+        usersInfo:selectUser,
+        option: values.opinion,
+        taskId:approveTaskId,
+      };
+      console.log(newTaskTransferFlowDTO)
+      const {code} = await taskTransferFlowPost({
+        ...newTaskTransferFlowDTO
+      })
+      if (code === 200){
+        notification.success({
+          message: "提示",
+          description: "转办成功",
+          duration: 2,
+          placement: "top",
+        });
+      }
+      // 成功后结束
+      setModalTransferVisible(false);
+      setModalSubmitVisible(false)
+      // @ts-ignore
+      actionRef.current.reload()
+    }catch(error : any){
+      message.error(error.message)
+    }finally {
+      setIsSubmitting(true)
     }
-    // 成功后结束
-    setModalTransferVisible(false);
-    setModalSubmitVisible(false)
   };
 
   // 结构
@@ -471,7 +529,6 @@ const UserAdminPage: React.FC = () => {
     type: string;
     key: string;
   }
-
   //动态列表的内容
   const renderFormItem = (item: FormItem) => {
     switch (item.type) {
@@ -581,20 +638,27 @@ const UserAdminPage: React.FC = () => {
           </Button>,
         ]}
         request={async (params, sort, filter) => {
+          // @ts-ignore
           const sortField = Object.keys(sort)?.[0];
+          // @ts-ignore
+          // todo 获取新的roleToken
+          const roleToken = sessionStorage.getItem("token")
+          // getRoleToken
           const sortOrder = sort?.[sortField] ?? undefined;
-          const {data ,code} = await waitListPost({
+          const {data,code} = await waitListPost({
             page: 1,
             limit:10000,
+            roleToken,
             sortField,
             sortOrder,
             ...filter,
           } as API.TodoTaskQueryDTO)
 
-          const userData = await getLoginUserUsingGet();
+          const userData = localStorage.getItem("userAccount")
           // @ts-ignore
-          setLoginUserData(userData.data)
-
+          console.log(userData)
+          // @ts-ignore
+          setLoginUserData(userData)
           return {
             success: code === 200,
             data: Array.isArray(data) ? data : [],
@@ -704,26 +768,22 @@ const UserAdminPage: React.FC = () => {
                 ))}
               </div>
               <br/>
-              <Form.Item name="selectedUsers" >
-                <Checkbox.Group>
-                  {nextNodeMessage?.map(({ taskName, nodeUsers }, index) => (
+              <Form.Item name="selectedUsers">
+                <div style={{gap: '8px', alignItems: 'center'}}>
+                  {nextNodeMessage?.map(({taskName, nodeUsers}, index) => (
                     <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '10px'}}>
-                      <p style={{
-                        marginRight: '8px',
-                        marginBottom: 0
-                      }}>{taskName}:</p>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                        {nodeUsers?.map(({fullname}) => (
-                          <Checkbox key={fullname} value={fullname} style={{lineHeight: '24px'}}>
+                      <p style={{marginRight: '8px'}}>{taskName}:</p>
+                      <div style={{display: 'flex', gap: '8px'}}>
+                        {nodeUsers?.map(({fullname}, index) => (
+                          <Button key={index} type="primary" size="middle"
+                                  style={{display: 'flex', alignItems: 'center', padding: '0 8px', lineHeight: '24px'}}>
                             {fullname}
-                          </Checkbox>
+                          </Button>
                         ))}
                       </div>
                     </div>
-
-
                   ))}
-                </Checkbox.Group>
+                </div>
               </Form.Item>
               <Form.Item
                 name="opinion"
@@ -734,7 +794,7 @@ const UserAdminPage: React.FC = () => {
                   <TextArea
                     rows={2}
                     placeholder="请输入意见"
-                    maxLength={6}
+                    maxLength={100}
                     style={{flexGrow: 1}}
                     required
                   />
@@ -742,7 +802,7 @@ const UserAdminPage: React.FC = () => {
               </Form.Item>
               <div style={{display: 'flex', justifyContent: 'flex-end', marginTop: '16px'}}>
                 <Space>
-                  <Button type="primary" htmlType="submit" > 提交 </Button>
+                  <Button type="primary" htmlType="submit" loading={isSubmitting} > 提交 </Button>
                   <Button type="default"  onClick={() => setAgreeModelVisible(false)}> 取消 </Button>
                 </Space>
               </div>
@@ -762,7 +822,7 @@ const UserAdminPage: React.FC = () => {
           <Form form={formReject} name="validateOnly" layout="vertical" autoComplete="off"  onFinish={handleSubmitReject}>
             <Form.Item name="name" style={{ marginBottom: 0 }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ marginRight: 8 }}>审批人: {loginUserData?.userAccount}</span>
+                <span style={{ marginRight: 8 }}>审批人: {loginUserData}</span>
               </div>
               <br />
               <Form.Item
@@ -770,15 +830,15 @@ const UserAdminPage: React.FC = () => {
               >
                 <span style={{ marginRight: 8 }}>驳回节点</span>
                 <Radio.Group
-                  value={radioValue}
-                  onChange={(e: { target: { value: any; }; }) => setRadioValue(e.target.value)}
-                  >
+                  onChange={(e) => setRadioValue(e.target.value)}
+                >
                   {runningData?.map((item, index) => (
-                    <Radio value={item.taskKey} key={index}>
+                    <Radio value={`${item.taskKey}-${item.userNo}`} key={index}> {/* 示例使用拼接 */}
                       {item.taskName}
                     </Radio>
                   ))}
                 </Radio.Group>
+
               </Form.Item>
               <Form.Item
                 name="opinion"
@@ -789,7 +849,7 @@ const UserAdminPage: React.FC = () => {
                   <TextArea
                     rows={2}
                     placeholder="请输入意见"
-                    maxLength={6}
+                    maxLength={100}
                     style={{ flexGrow: 1 }}
                     required
                   />
@@ -797,8 +857,8 @@ const UserAdminPage: React.FC = () => {
               </Form.Item>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                 <Space>
-                  <Button type="primary" htmlType="submit"> 提交 </Button>
-                  <Button type="default" htmlType="reset" onClick={() => setModalRejectVisible(false)}> 取消 </Button>
+                  <Button type="primary" htmlType="submit" loading={isSubmitting} > 提交 </Button>
+                  <Button type="default" htmlType="reset"  onClick={() => setModalRejectVisible(false)}> 取消 </Button>
                 </Space>
               </div>
             </Form.Item>
@@ -817,7 +877,7 @@ const UserAdminPage: React.FC = () => {
           <Form form={formTransfer} name="validateOnly" layout="vertical" autoComplete="off" onFinish={handleSubmitTansfer}>
             <Form.Item name="name" style={{ marginBottom: 0 }}>
               <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-                <span style={{marginRight: 8}}>审批人: {loginUserData?.userAccount}</span>
+                <span style={{marginRight: 8}}>审批人: {loginUserData}</span>
               </div>
               <br/>
               <Form.Item
@@ -830,8 +890,8 @@ const UserAdminPage: React.FC = () => {
                   onChange={onUserChange}
                 >
                   {transferUserInfo?.map(user => (
-                    <Option key={user.userNo} value={user.userNo}>
-                      {user.fullname}
+                    <Option key={user.userName} value={user.userName}>
+                      {user.userAccount}
                     </Option>
                   ))}
                 </Select>
@@ -841,7 +901,7 @@ const UserAdminPage: React.FC = () => {
                 rules={[{ required: true, message: '请输入审批意见' }]}
               >
                 <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                  <label style={{ marginRight: '8px' }}>驳回意见</label>
+                  <label style={{ marginRight: '8px' }}>流转意见</label>
                   <TextArea
                     rows={2}
                     placeholder="请输入意见"
@@ -853,8 +913,8 @@ const UserAdminPage: React.FC = () => {
               </Form.Item>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
                 <Space>
-                  <Button type="primary" htmlType="submit"> 提交 </Button>
-                  <Button type="default" htmlType="reset" onClick={() => setModalTransferVisible(false)}> 取消 </Button>
+                  <Button type="primary" htmlType="submit" loading={isSubmitting} > 提交 </Button>
+                  <Button type="default" htmlType="reset"   onClick={() => setModalTransferVisible(false)}> 取消 </Button>
                 </Space>
               </div>
             </Form.Item>

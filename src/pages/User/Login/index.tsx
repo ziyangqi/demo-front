@@ -32,10 +32,9 @@ const Login: React.FC = () => {
       });
 
       // @ts-ignore
-      const token = res.data.token;
+      sessionStorage.setItem("token",res.data.token);
       // @ts-ignore
-      localStorage.setItem('token', token);
-      console.log(token)
+      sessionStorage.setItem("roleToken",res.data.roleToken);
       const defaultLoginSuccessMessage = '登录成功！';
       message.success(defaultLoginSuccessMessage);
       // 保存已登录用户信息
@@ -43,6 +42,9 @@ const Login: React.FC = () => {
         ...initialState,
         currentUser: res.data,
       });
+
+      // @ts-ignore
+      localStorage.setItem('userAccount',res.data.userAccount)
       // @ts-ignore
       const urlParams = new URL(window.location.href).searchParams;
       history.push(urlParams.get('redirect') || '/');

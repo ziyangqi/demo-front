@@ -252,6 +252,7 @@ declare namespace API {
     userName?: string;
     userPassword?: string;
     userRole?: string;
+    roleToken?: string;
   };
 
   type UserAddRequest = {
@@ -315,6 +316,8 @@ declare namespace API {
     startTime? :string
     limit?: number
     page?: number
+    roleToken?:string
+    token?:string
   }
 
   type waitList = {
@@ -324,6 +327,7 @@ declare namespace API {
     processDefinitionId?: string
     processInstanceId?: string
     title?: string
+    isTransfer?:string
   }
 
   type flowList ={
@@ -375,11 +379,11 @@ declare namespace API {
 
   // 编写发起流程的DTO
   type taskFlowDTO = {
-    defId:? string|null
+    defId:? string|null|undefined
     externalUrl:? string|null
     formData:? string|null
-    modelId:? string|null
-    typeTitle:? string|null
+    modelId:? string|null|undefined
+    typeTitle:? string|null|undefined
   }
   type taskId ={
     taskId:? string
@@ -413,6 +417,7 @@ declare namespace API {
     option?: string
     taskId?: string
     taskTitle?: string
+    userId?:string
   }
 
   type taskTransferFlowDTO = {
