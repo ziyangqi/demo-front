@@ -7,7 +7,7 @@
 import { request } from '@umijs/max';
 
 export async function waitListPost(body: API.TodoTaskQueryDTO, options?: { [key: string]: any }) {
-  return request<API.BaseResponseString_>('api/flow/queryTaskList', {
+  return request<API.BaseResponseString_>('/engine/task/wait/list', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

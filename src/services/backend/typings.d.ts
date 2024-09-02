@@ -316,7 +316,6 @@ declare namespace API {
     startTime? :string
     limit?: number
     page?: number
-    roleToken?:string
     token?:string
   }
 

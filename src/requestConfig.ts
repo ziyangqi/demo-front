@@ -25,11 +25,11 @@ export const requestConfig: RequestConfig = {
   requestInterceptors: [
     (config: RequestOptions) => {
       // 拦截请求配置，进行个性化处理。请求头变成roleToken
-      const roleToken = sessionStorage.getItem('roleToken');
-      if (roleToken) {
+      const token = sessionStorage.getItem('token');
+      if (token) {
         // 将 token 添加到 Authorization 头中
         // @ts-ignore
-        config.headers['Authorization'] = roleToken
+        config.headers['Authorization'] = token
       }
       return config;
 

@@ -34,7 +34,7 @@ const Login: React.FC = () => {
       // @ts-ignore
       sessionStorage.setItem("token",res.data.token);
       // @ts-ignore
-      sessionStorage.setItem("roleToken",res.data.roleToken);
+      //sessionStorage.setItem("roleToken",res.data.roleToken);
       const defaultLoginSuccessMessage = '登录成功！';
       message.success(defaultLoginSuccessMessage);
       // 保存已登录用户信息

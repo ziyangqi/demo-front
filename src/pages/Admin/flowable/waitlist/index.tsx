@@ -1,4 +1,3 @@
-
 import { PlusOutlined } from '@ant-design/icons';
 import type { ActionType, ProColumns } from '@ant-design/pro-components';
 import { PageContainer, ProTable } from '@ant-design/pro-components';
@@ -246,7 +245,7 @@ const UserAdminPage: React.FC = () => {
     },
     {
       title: '是否转办',
-      dataIndex: 'isTransfer',
+      dataIndex: 'transfer',
       valueType: 'text',
       hideInSearch: true,
       valueEnum:{
@@ -318,8 +317,6 @@ const UserAdminPage: React.FC = () => {
       ),
     },
   ];
-
-
   const drawerColumnsList = [
     {
       title: '意见',
@@ -357,9 +354,6 @@ const UserAdminPage: React.FC = () => {
       key: 'end',
     },
   ];
-
-
-
   const handleSubmit = () => {
     // 处理审批逻辑
     // 1 开启一个浮窗
@@ -382,7 +376,6 @@ const UserAdminPage: React.FC = () => {
     setTransferUserInfo(localListData.data)
     setModalTransferVisible(true);
   };
-
 
   // 同意流程中的同意按钮的内容
   const handleSubmitAgree = async () => {
@@ -642,13 +635,11 @@ const UserAdminPage: React.FC = () => {
           const sortField = Object.keys(sort)?.[0];
           // @ts-ignore
           // todo 获取新的roleToken
-          const roleToken = sessionStorage.getItem("token")
           // getRoleToken
           const sortOrder = sort?.[sortField] ?? undefined;
           const {data,code} = await waitListPost({
             page: 1,
             limit:10000,
-            roleToken,
             sortField,
             sortOrder,
             ...filter,
@@ -667,7 +658,6 @@ const UserAdminPage: React.FC = () => {
         }}
         columns={columns}
       />
-
       <Drawer
         title="流程代办列表"
         width={1000}
