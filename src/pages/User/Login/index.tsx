@@ -75,7 +75,7 @@ const Login: React.FC = () => {
             maxWidth: '75vw',
           }}
           logo={<img alt="logo" style={{ height: '100%' }} src="/logo.svg" />}
-          title="流程引擎前端demo"
+          title="流程引擎"
           initialValues={{
             autoLogin: true,
           }}

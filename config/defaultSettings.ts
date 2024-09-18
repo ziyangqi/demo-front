@@ -15,7 +15,7 @@ const Settings: ProLayoutProps & {
   fixedHeader: false,
   fixSiderbar: true,
   colorWeak: false,
-  title: '流程引擎前端demo' +
+  title: '流程引擎' +
     '',
   pwa: true,
   iconfontUrl: '',
